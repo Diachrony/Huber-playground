@@ -1,0 +1,67 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import RidgeCV
+from sklearn.linear_model import SGDRegressor
+from sklearn.linear_model import HuberRegressor
+from sklearn.metrics import make_scorer
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import median_absolute_error
+
+years = np.array([1980, 1990, 2000, 2010, 2020])
+ages = np.array([0, 10, 20, 3, 40])
+plt.plot(years, ages, 'o', color = 'black')
+
+def print_errors (ages, predicted_ages, huber_epsilon = None):
+    print(f' MAE: {mean_absolute_error(ages, predicted_ages):.1f}')
+    print(f' MSE: {mean_squared_error(ages, predicted_ages):.1f}')
+    print(f' Median Abs Err: {median_absolute_error(ages, predicted_ages):.1f}')
+
+epsilon = None
+    
+#Trying the np.polyfit
+m, b = np.polyfit(years, ages, 1)
+predicted_ages = m*years + b
+plt.plot(years, predicted_ages, color='orange', alpha = 0.2)
+plt.plot(years, predicted_ages, 'o', color='orange', alpha = 0.2)
+print('\nnp.polyfit')
+print_errors(ages, predicted_ages)
+
+#Trying SGDRegressor
+model = make_pipeline(StandardScaler(), SGDRegressor(max_iter=1000000))
+model.fit(years.reshape(-1, 1), ages)
+predicted_ages = model.predict(years.reshape(-1, 1))
+plt.plot(years, predicted_ages, 'o', color='green', alpha = 0.2)
+m, b = np.polyfit(years, predicted_ages, 1)
+plt.plot(years, m*years + b, color = 'green', alpha = 0.2)
+print('\nSGDRegressor')
+print_errors(ages, predicted_ages)
+
+#Trying Huber loss on the SGDRegressor
+epsilon_values = [_ for _ in range(2, 5)]
+for i in epsilon_values:
+    epsilon = i
+    model = make_pipeline(StandardScaler(), SGDRegressor(loss = 'huber', epsilon = epsilon, max_iter=1000000))
+    model.fit(years.reshape(-1, 1), ages)
+    predicted_ages = model.predict(years.reshape(-1, 1))
+    plt.plot(years, predicted_ages, 'o', color="blue", alpha = 0.2)
+    m, b = np.polyfit(years, predicted_ages, 1)
+    plt.plot(years, m*years + b, color="blue", alpha = 0.2)
+    print('\nSGD with Huber, epsilon:', epsilon)
+    print_errors(ages, predicted_ages, epsilon)
+    
+#Trying HuberRegressor
+epsilon_values = [1.6 + 0.1*_ for _ in range(5)]
+for i in epsilon_values:
+    epsilon = i
+    model = make_pipeline(StandardScaler(), HuberRegressor(epsilon = epsilon, max_iter=1000000))
+    model.fit(years.reshape(-1, 1), ages)
+    predicted_ages = model.predict(years.reshape(-1, 1))
+    plt.plot(years, predicted_ages, 'o', color="red", alpha = 0.2)
+    m, b = np.polyfit(years, predicted_ages, 1)
+    plt.plot(years, m*years + b, color="red", alpha = 0.2)
+    print()
+    print(f'Huber, epsilon: {epsilon:.1f}')
+    print_errors(ages, predicted_ages, epsilon)
